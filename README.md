@@ -94,4 +94,6 @@ NEXT_PUBLIC_ADMIN_URL="http://localhost:3001"
 
 ## 📄 License
 
-MIT License
+All Rights Reserved.
+
+Copyright (c) 2026 Top Blog. This project is proprietary and not open for use, modification, or distribution without explicit permission.
