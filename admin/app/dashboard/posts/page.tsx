@@ -36,6 +36,7 @@ interface Post {
   views: number;
   createdAt: string;
   updatedAt: string;
+  previewUrl?: string;
 }
 
 export default function PostsPage() {
@@ -77,6 +78,7 @@ export default function PostsPage() {
           views: p.views || 0,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
+          previewUrl: p.previewUrl,
         }));
         setPosts(mapped);
         if (data.pagination) {
@@ -298,12 +300,13 @@ export default function PostsPage() {
                       <DropdownMenuContent align="end" className="w-[160px]">
                         <DropdownMenuItem asChild>
                           <a
-                            href={`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/blog/${post.slug}`}
+                            href={post.previewUrl || `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/blog/${post.slug}`}
                             target="_blank"
                             className="flex items-center"
+                            title={post.previewUrl ? "Preview this draft on the blog" : "Open on the blog"}
                           >
                             <Eye className="h-3 w-3 mr-2" />
-                            View
+                            {post.previewUrl ? "Preview" : "View"}
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>

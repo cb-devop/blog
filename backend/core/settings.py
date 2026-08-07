@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u1^v)+l8x*0+3tur^tr#wxob6caf#rqb&pg9e7pmyf4pimn8a+'
+# Set DJANGO_SECRET_KEY on the server (e.g. in deploy/.env.production).
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-u1^v)+l8x*0+3tur^tr#wxob6caf#rqb&pg9e7pmyf4pimn8a+')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+# Comma-separated list of allowed hosts, e.g. "blog.example.com,admin.example.com"
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
+    if h.strip()
+]
 
 
 # Application definition
@@ -128,8 +135,24 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Security: only send cookies over HTTPS in production (when DEBUG=False)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True  # Only for development
+# Production: set DJANGO_CORS_ORIGINS to a comma-separated list, e.g. "https://blog.example.com,https://admin.example.com"
+CORS_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get('DJANGO_CORS_ORIGINS', '').split(',')
+    if o.strip()
+]
+CORS_ALLOW_ALL_ORIGINS = not CORS_ALLOWED_ORIGINS  # Only for development
 
 # REST Framework
 REST_FRAMEWORK = {
@@ -140,6 +163,3 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'

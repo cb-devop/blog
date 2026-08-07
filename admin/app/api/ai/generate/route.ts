@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiError, logAudit, validateString } from "@/lib/security";
+import { requireAuth, apiError, logAudit, validateString, sanitizeArticleHtml } from "@/lib/security";
 import { isAiConfigured } from "@/lib/settings-store";
 import { callAi, buildSystemPrompt, extractHtml } from "@/lib/ai";
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       maxTokens: 4096,
     });
 
-    const html = extractHtml(raw);
+    const html = sanitizeArticleHtml(extractHtml(raw));
     const title = extractTitleFromHtml(html);
     const excerpt = extractExcerptFromHtml(html);
 

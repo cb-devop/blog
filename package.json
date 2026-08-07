@@ -8,7 +8,9 @@
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "backend\\venv\\Scripts\\python.exe backend\\manage.py runserver",
     "install:all": "npm install --prefix admin && npm install --prefix frontend",
-    "build": "concurrently \"npm run build --prefix admin\" \"npm run build --prefix frontend\""
+    "build": "concurrently \"npm run build --prefix admin\" \"npm run build --prefix frontend\"",
+    "deploy": "bash deploy/deploy.sh",
+    "start:prod": "pm2 start deploy/ecosystem.config.js"
   },
   "keywords": [],
   "author": "",

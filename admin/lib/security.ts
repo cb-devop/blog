@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sanitizeHtml from "sanitize-html";
 import { getSecuritySettings } from "./security-settings";
 
 // Role-based access check
@@ -46,21 +47,63 @@ export function validateString(value: string, maxLength: number = 500): string {
   return value.trim().replace(/<[^>]*>/g, "").substring(0, maxLength);
 }
 
-// For rich HTML content like blog post body - strips dangerous tags but preserves safe structural HTML
+// HTML allowed in rich content (TipTap editor output)
+const ALLOWED_TAGS = [
+  "p", "h1", "h2", "h3", "h4", "h5", "h6",
+  "strong", "em", "s", "u", "mark", "sub", "sup", "span",
+  "code", "pre", "blockquote",
+  "ul", "ol", "li", "br", "hr",
+  "a", "img",
+  "table", "thead", "tbody", "tr", "th", "td",
+  "figure", "figcaption", "div",
+];
+
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: {
+    a: ["href", "target", "rel"],
+    img: ["src", "alt", "title", "width", "height"],
+    code: ["class"],
+    pre: ["class"],
+    th: ["align", "colspan", "rowspan"],
+    td: ["align", "colspan", "rowspan"],
+    "*": ["class"],
+  },
+  // Only safe URL schemes — blocks javascript:, data: (except images), vbscript: etc.
+  allowedSchemes: ["http", "https", "mailto"],
+  allowedSchemesByTag: {
+    img: ["http", "https", "data"],
+  },
+  allowedSchemesAppliedToAttributes: ["href", "src"],
+  disallowedTagsMode: "discard",
+  allowVulnerableTags: false,
+  transformTags: {
+    // Prevent reverse-tabnabbing: always add rel="noopener noreferrer" to links
+    a: (tagName, attribs) => ({
+      tagName,
+      attribs: {
+        ...attribs,
+        rel: Array.from(
+          new Set([...(attribs.rel ? attribs.rel.split(/\s+/) : []), "noopener", "noreferrer"])
+        ).join(" "),
+      },
+    }),
+  },
+};
+
+// Sanitize HTML with the same rules used before persisting.
+// Use this before rendering HTML to the client (e.g. AI previews).
+export function sanitizeArticleHtml(value: string): string {
+  if (!value || typeof value !== "string") return "";
+  return sanitizeHtml(value, SANITIZE_OPTIONS).trim();
+}
+
+// For rich HTML content like blog post body - proper HTML sanitizer (XSS prevention)
+// Blocks script/iframe/object/embed/style, javascript: URLs, event handlers, etc.
+// while preserving the structural HTML produced by the TipTap editor.
 export function validateHtmlContent(value: string, maxLength: number = 100000): string {
   if (!value || typeof value !== "string") return "";
-  // Only strip script, iframe, object, embed, style tags and event handlers (XSS prevention)
-  // Preserve structural HTML like h1-h6, p, div, br, ul, ol, li, blockquote, pre, code, etc.
-  return value
-    .trim()
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[\s\S]*?<\/embed>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/\son\w+="[^"]*"/gi, "")
-    .replace(/\son\w+='[^']*'/gi, "")
-    .substring(0, maxLength);
+  return sanitizeArticleHtml(value).substring(0, maxLength);
 }
 
 export function validateSlug(value: string): boolean {

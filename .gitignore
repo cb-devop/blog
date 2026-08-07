@@ -5,8 +5,13 @@ __pycache__/
 *.pyo
 .env
 .env.local
+.env.production
+.env.*.local
 db.sqlite3
-*.sqlite3
+*.sqlite3admin/prisma/dev.db
+admin/prisma/dev.db-journal
+admin/data/
+deploy/.env.production
 next-env.d.ts
 tsconfig.tsbuildinfo
 *.tsbuildinfo

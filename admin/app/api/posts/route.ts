@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, apiError, logAudit, validateString, validateHtmlContent } from "@/lib/security";
+import { generatePreviewToken } from "@/lib/preview";
 import { resolveTagIds } from "@/lib/tags";
 
 // GET all posts
@@ -38,8 +39,19 @@ export async function GET(request: Request) {
 
     const total = await prisma.post.count({ where });
 
+    // For non-published posts, attach a signed preview URL so admins can
+    // preview drafts/scheduled posts on the frontend without publishing.
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const postsWithPreview = posts.map((post) => {
+      if (post.status === "PUBLISHED") return post;
+      return {
+        ...post,
+        previewUrl: `${frontendUrl}/blog/${post.slug}?preview=${generatePreviewToken(post.slug)}`,
+      };
+    });
+
     return NextResponse.json({
-      posts,
+      posts: postsWithPreview,
       pagination: {
         page,
         limit,
