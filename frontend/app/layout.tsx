@@ -1,4 +1,4 @@
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from "@/components/navbar"
@@ -6,6 +6,22 @@ import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 import { TerminalOverlay } from "@/components/terminal/TerminalOverlay"
 import { MaintenanceGuard } from "@/components/maintenance-guard"
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+  preload: true,
+  fallback: ["-apple-system", "Segoe UI", "sans-serif"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  preload: true,
+  fallback: ["Arial", "Helvetica", "sans-serif"],
+});
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -26,8 +42,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={jetbrainsMono.variable}>
-      <body className="min-h-screen bg-background text-foreground antialiased font-mono">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -1,6 +1,22 @@
 import { setSmtpConfig } from "./email";
 
 // In-memory settings store (shared across routes)
+export interface AiSettings {
+  // Provider: "gemini" | "openai" | "openrouter" | "custom"
+  aiProvider: string;
+  // API key for the chosen provider
+  aiApiKey: string;
+  // Model name (e.g. "gemini-2.0-flash", "gpt-4o", "anthropic/claude-3.5-sonnet")
+  aiModel: string;
+  // Base URL override (for custom / OpenAI-compatible endpoints).
+  // When provider is "gemini", this is ignored (uses Google's OpenAI-compatible endpoint).
+  aiBaseUrl: string;
+  // Default system instructions prepended to every generation request
+  aiSystemPrompt: string;
+  // Creativity 0.0 - 2.0
+  aiTemperature: number;
+}
+
 export interface SiteSettings {
   siteName: string;
   siteDescription: string;
@@ -26,6 +42,8 @@ export interface SiteSettings {
   smtpFromEmail: string;
   smtpFromName: string;
   smtpUseSSL: boolean;
+  // AI settings
+  ai: AiSettings;
 }
 
 export const defaultSettings: SiteSettings = {
@@ -47,18 +65,31 @@ export const defaultSettings: SiteSettings = {
   smtpFromEmail: "",
   smtpFromName: "",
   smtpUseSSL: false,
+  ai: {
+    aiProvider: "gemini",
+    aiApiKey: "",
+    aiModel: "gemini-2.0-flash",
+    aiBaseUrl: "",
+    aiSystemPrompt:
+      "You are an expert technical writer and blogger. Write clear, engaging, well-structured articles in HTML. Use <h2>/<h3> for sections, <p> for paragraphs, <ul>/<ol> for lists, <pre><code class=\"language-xxx\"> for code blocks, and <blockquote> for quotes. Never wrap output in a code fence. Output only the article HTML.",
+    aiTemperature: 0.7,
+  },
 };
 
 let siteSettings: SiteSettings = { ...defaultSettings };
 
 export function getSettings(): SiteSettings {
-  return { ...siteSettings };
+  return { ...siteSettings, ai: { ...siteSettings.ai } };
 }
 
 export function getSafeSettings(): SiteSettings {
   return {
     ...siteSettings,
     smtpPassword: siteSettings.smtpPassword ? "********" : "",
+    ai: {
+      ...siteSettings.ai,
+      aiApiKey: siteSettings.ai.aiApiKey ? "********" : "",
+    },
   };
 }
 
@@ -66,13 +97,22 @@ export function updateSettings(data: Partial<SiteSettings>): SiteSettings {
   siteSettings = {
     ...siteSettings,
     ...data,
+    ai: { ...siteSettings.ai, ...(data.ai || {}) },
   };
   syncSmtpConfig();
-  return { ...siteSettings };
+  return getSettings();
 }
 
 export function isSmtpConfigured(): boolean {
   return !!(siteSettings.smtpHost && siteSettings.smtpUsername && siteSettings.smtpPassword);
+}
+
+export function isAiConfigured(): boolean {
+  return !!(siteSettings.ai.aiApiKey && siteSettings.ai.aiModel);
+}
+
+export function getAiSettings(): AiSettings {
+  return { ...siteSettings.ai };
 }
 
 function syncSmtpConfig() {

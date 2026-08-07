@@ -1,13 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Upload, Mail, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Save, Upload, Mail, CheckCircle, XCircle, Loader2, Sparkles, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+
+interface AiSettings {
+  aiProvider: string;
+  aiApiKey: string;
+  aiModel: string;
+  aiBaseUrl: string;
+  aiSystemPrompt: string;
+  aiTemperature: number;
+}
 
 interface SiteSettings {
   siteName: string;
@@ -25,7 +34,6 @@ interface SiteSettings {
   };
   analyticsId: string;
   googleTagManagerId: string;
-  // Email / SMTP settings
   enableDoubleOptIn: boolean;
   smtpHost: string;
   smtpPort: number;
@@ -34,7 +42,26 @@ interface SiteSettings {
   smtpFromEmail: string;
   smtpFromName: string;
   smtpUseSSL: boolean;
+  ai: AiSettings;
 }
+
+const AI_PROVIDERS = [
+  { id: "gemini", label: "Google Gemini (OpenAI-compatible)" },
+  { id: "openai", label: "OpenAI" },
+  { id: "openrouter", label: "OpenRouter (multi-model)" },
+  { id: "groq", label: "Groq" },
+  { id: "mistral", label: "Mistral" },
+  { id: "custom", label: "Custom (OpenAI-compatible endpoint)" },
+];
+
+const MODEL_SUGGESTIONS: Record<string, string[]> = {
+  gemini: ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"],
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "o3-mini"],
+  openrouter: ["google/gemini-2.0-flash-exp:free", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct"],
+  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+  mistral: ["mistral-large-latest", "mistral-small-latest"],
+  custom: [],
+};
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SiteSettings>({
@@ -61,10 +88,19 @@ export default function SettingsPage() {
     smtpFromEmail: "",
     smtpFromName: "",
     smtpUseSSL: false,
+    ai: {
+      aiProvider: "gemini",
+      aiApiKey: "",
+      aiModel: "gemini-2.0-flash",
+      aiBaseUrl: "",
+      aiSystemPrompt: "",
+      aiTemperature: 0.7,
+    },
   });
   const [loading, setLoading] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
   const [smtpStatus, setSmtpStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [showAiKey, setShowAiKey] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,6 +160,13 @@ export default function SettingsPage() {
   const updateField = (field: keyof SiteSettings, value: any) => {
     setSmtpStatus(null);
     setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateAiField = (field: keyof AiSettings, value: any) => {
+    setSettings((prev) => ({
+      ...prev,
+      ai: { ...prev.ai, [field]: value },
+    }));
   };
 
   const updateSocialLink = (platform: keyof typeof settings.socialLinks, value: string) => {
@@ -493,6 +536,138 @@ export default function SettingsPage() {
               )}
               {smtpTesting ? "Testing..." : "Test Connection"}
             </Button>
+          </div>
+        </Card>
+
+        {/* AI Writer Configuration */}
+        <Card className="p-6 border-l-4 border-l-primary">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                AI Writer Configuration
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Connect Gemini or any OpenAI-compatible provider to generate and refine articles
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Provider
+              </label>
+              <select
+                value={settings.ai.aiProvider}
+                onChange={(e) =>
+                  updateAiField("aiProvider", e.target.value)
+                }
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {AI_PROVIDERS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                API Key
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showAiKey ? "text" : "password"}
+                  value={settings.ai.aiApiKey}
+                  onChange={(e) => updateAiField("aiApiKey", e.target.value)}
+                  placeholder="Paste your API key"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowAiKey(!showAiKey)}
+                  title={showAiKey ? "Hide key" : "Show key"}
+                >
+                  {showAiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Model
+              </label>
+              <Input
+                value={settings.ai.aiModel}
+                onChange={(e) => updateAiField("aiModel", e.target.value)}
+                placeholder="e.g. gemini-2.0-flash"
+              />
+              {MODEL_SUGGESTIONS[settings.ai.aiProvider]?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {MODEL_SUGGESTIONS[settings.ai.aiProvider].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => updateAiField("aiModel", m)}
+                      className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors border border-border"
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Base URL <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Input
+                value={settings.ai.aiBaseUrl}
+                onChange={(e) => updateAiField("aiBaseUrl", e.target.value)}
+                placeholder="Auto-detected from provider"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Leave blank to use the provider default. Set only for self-hosted / custom endpoints.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Creativity (Temperature): {settings.ai.aiTemperature.toFixed(1)}
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={0.1}
+              value={settings.ai.aiTemperature}
+              onChange={(e) => updateAiField("aiTemperature", parseFloat(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span>Focused (0)</span>
+              <span>Balanced (0.7)</span>
+              <span>Creative (2)</span>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Default System Prompt
+            </label>
+            <Textarea
+              value={settings.ai.aiSystemPrompt}
+              onChange={(e) => updateAiField("aiSystemPrompt", e.target.value)}
+              placeholder="Instructions the AI follows for every generation..."
+              rows={4}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Controls how articles are structured. Reset to default if unsure.
+            </p>
           </div>
         </Card>
 

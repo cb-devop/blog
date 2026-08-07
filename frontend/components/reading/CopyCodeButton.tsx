@@ -123,227 +123,310 @@ export function CopyCodeButton({ content }: { content: string }) {
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const article = document.querySelector(".article-content");
-    if (!article) return;
+    let cancelled = false;
+    let observer: MutationObserver | null = null;
 
-    // Use a timeout to ensure DOM is fully rendered
-    const timeoutId = setTimeout(() => {
-      const codeBlocks = article.querySelectorAll<HTMLPreElement>("pre");
-      if (codeBlocks.length === 0) return;
+    const processBlock = (pre: HTMLPreElement) => {
+      if (pre.dataset.codeBlock === "processed") return;
+      pre.dataset.codeBlock = "processed";
 
-      const addedWrappers: HTMLDivElement[] = [];
+      let code = pre.querySelector("code");
+      if (!code) {
+        code = document.createElement("code");
+        code.textContent = pre.textContent;
+        pre.textContent = "";
+        pre.appendChild(code);
+      }
 
-      codeBlocks.forEach((pre) => {
-        // Skip if already processed
-        if (pre.dataset.codeBlock === "processed") return;
-        pre.dataset.codeBlock = "processed";
+      const lang = highlightCode(code as HTMLElement, pre);
+      const displayLang = getLanguageDisplayName(lang);
 
-        // Find or create the code element
-        let code = pre.querySelector("code");
-        if (!code) {
-          code = document.createElement("code");
-          code.textContent = pre.textContent;
-          pre.textContent = "";
-          pre.appendChild(code);
-        }
+      const wrapper = document.createElement("div");
+      wrapper.className =
+        "code-block-wrapper rounded-lg border border-border overflow-hidden mb-5 mt-4";
 
-        // Apply syntax highlighting
-        const lang = highlightCode(code as HTMLElement, pre);
-        const displayLang = getLanguageDisplayName(lang);
+      const header = document.createElement("div");
+      header.className =
+        "code-block-header flex items-center justify-between px-4 py-2 bg-muted/60 border-b border-border";
 
-        // Create wrapper
-        const wrapper = document.createElement("div");
-        wrapper.className =
-          "code-block-wrapper rounded-lg border border-border overflow-hidden mb-5 mt-4";
+      const langLabel = document.createElement("div");
+      langLabel.className = "flex items-center gap-2";
 
-        // Create header
-        const header = document.createElement("div");
-        header.className =
-          "code-block-header flex items-center justify-between px-4 py-2 bg-muted/60 border-b border-border";
+      const langIcon = document.createElement("span");
+      langIcon.className = "code-lang-icon";
+      langIcon.textContent = lang.substring(0, 2).toUpperCase();
+      langIcon.style.cssText =
+        "background: color-mix(in srgb, var(--color-terminal-text) 15%, transparent);" +
+        "color: var(--color-terminal-text);width:18px;height:18px;border-radius:3px;" +
+        "display:flex;align-items:center;justify-content:center;font-size:8px;" +
+        "font-weight:700;flex-shrink:0;";
+      langLabel.appendChild(langIcon);
 
-        // Language label with icon based on language
-        const langLabel = document.createElement("div");
-        langLabel.className = "flex items-center gap-2";
+      const langText = document.createElement("span");
+      langText.className =
+        "text-xs font-mono text-muted-foreground uppercase tracking-wider";
+      langText.textContent = displayLang;
+      langLabel.appendChild(langText);
 
-        const langIcon = document.createElement("span");
-        langIcon.className = "code-lang-icon w-3.5 h-3.5 rounded flex items-center justify-center text-[8px] font-bold";
-        langIcon.textContent = lang.substring(0, 2).toUpperCase();
-        langIcon.style.cssText = `
-          background: color-mix(in srgb, var(--color-terminal-text) 15%, transparent);
-          color: var(--color-terminal-text);
-          width: 18px;
-          height: 18px;
-          border-radius: 3px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 8px;
-          font-weight: 700;
-          flex-shrink: 0;
-        `;
-        langLabel.appendChild(langIcon);
+      header.appendChild(langLabel);
 
-        const langText = document.createElement("span");
-        langText.className = "text-xs font-mono text-muted-foreground uppercase tracking-wider";
-        langText.textContent = displayLang;
-        langLabel.appendChild(langText);
+      const copyBtn = document.createElement("button");
+      copyBtn.className =
+        "copy-code-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md " +
+        "text-xs font-mono border border-border " +
+        "bg-background hover:bg-accent hover:border-ring " +
+        "text-muted-foreground hover:text-foreground " +
+        "transition-all duration-200 active:scale-95";
+      copyBtn.setAttribute("aria-label", "Copy code to clipboard");
+      copyBtn.title = "Copy code (Ctrl+C)";
 
-        header.appendChild(langLabel);
+      const copySvg = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg"
+      );
+      copySvg.setAttribute("width", "13");
+      copySvg.setAttribute("height", "13");
+      copySvg.setAttribute("viewBox", "0 0 24 24");
+      copySvg.setAttribute("fill", "none");
+      copySvg.setAttribute("stroke", "currentColor");
+      copySvg.setAttribute("stroke-width", "2");
+      copySvg.classList.add("copy-icon");
+      const rect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect"
+      );
+      rect.setAttribute("x", "9");
+      rect.setAttribute("y", "9");
+      rect.setAttribute("width", "13");
+      rect.setAttribute("height", "13");
+      rect.setAttribute("rx", "2");
+      rect.setAttribute("ry", "2");
+      copySvg.appendChild(rect);
+      const path = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+      path.setAttribute(
+        "d",
+        "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+      );
+      copySvg.appendChild(path);
+      copyBtn.appendChild(copySvg);
 
-        // Copy button
-        const copyBtn = document.createElement("button");
-        copyBtn.className =
-          "copy-code-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md " +
-          "text-xs font-mono border border-border " +
-          "bg-background hover:bg-accent hover:border-ring " +
-          "text-muted-foreground hover:text-foreground " +
-          "transition-all duration-200 active:scale-95";
-        copyBtn.title = "Copy code";
+      const copyText = document.createElement("span");
+      copyText.className = "copy-text";
+      copyText.textContent = "Copy";
+      copyBtn.appendChild(copyText);
 
-        // Copy icon SVG
-        const copySvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        copySvg.setAttribute("width", "13");
-        copySvg.setAttribute("height", "13");
-        copySvg.setAttribute("viewBox", "0 0 24 24");
-        copySvg.setAttribute("fill", "none");
-        copySvg.setAttribute("stroke", "currentColor");
-        copySvg.setAttribute("stroke-width", "2");
-        copySvg.classList.add("copy-icon");
+      const checkSvg = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg"
+      );
+      checkSvg.setAttribute("width", "13");
+      checkSvg.setAttribute("height", "13");
+      checkSvg.setAttribute("viewBox", "0 0 24 24");
+      checkSvg.setAttribute("fill", "none");
+      checkSvg.setAttribute("stroke", "currentColor");
+      checkSvg.setAttribute("stroke-width", "2");
+      checkSvg.classList.add("check-icon");
+      checkSvg.style.display = "none";
+      const polyline = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "polyline"
+      );
+      polyline.setAttribute("points", "20 6 9 17 4 12");
+      checkSvg.appendChild(polyline);
+      copyBtn.appendChild(checkSvg);
 
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", "9");
-        rect.setAttribute("y", "9");
-        rect.setAttribute("width", "13");
-        rect.setAttribute("height", "13");
-        rect.setAttribute("rx", "2");
-        rect.setAttribute("ry", "2");
-        copySvg.appendChild(rect);
-
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1");
-        copySvg.appendChild(path);
-
-        copyBtn.appendChild(copySvg);
-
-        const copyText = document.createElement("span");
-        copyText.className = "copy-text";
-        copyText.textContent = "Copy";
-        copyBtn.appendChild(copyText);
-
-        // Check icon (hidden initially)
-        const checkSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        checkSvg.setAttribute("width", "13");
-        checkSvg.setAttribute("height", "13");
-        checkSvg.setAttribute("viewBox", "0 0 24 24");
-        checkSvg.setAttribute("fill", "none");
-        checkSvg.setAttribute("stroke", "currentColor");
-        checkSvg.setAttribute("stroke-width", "2");
-        checkSvg.classList.add("check-icon");
-        checkSvg.style.display = "none";
-
-        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        polyline.setAttribute("points", "20 6 9 17 4 12");
-        checkSvg.appendChild(polyline);
-
-        copyBtn.appendChild(checkSvg);
-
-        // Copy handler
-        copyBtn.addEventListener("click", async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          const code = pre.querySelector("code");
-          const text = code?.textContent || pre.textContent || "";
-
-          try {
-            await navigator.clipboard.writeText(text);
-          } catch {
-            try {
-              const textarea = document.createElement("textarea");
-              textarea.value = text;
-              textarea.style.position = "fixed";
-              textarea.style.opacity = "0";
-              document.body.appendChild(textarea);
-              textarea.select();
-              document.execCommand("copy");
-              document.body.removeChild(textarea);
-            } catch {
-              return;
-            }
+      const showCopied = () => {
+        const icon = copyBtn.querySelector(".copy-icon") as HTMLElement;
+        const check = copyBtn.querySelector(".check-icon") as HTMLElement;
+        const textSpan = copyBtn.querySelector(".copy-text") as HTMLElement;
+        if (icon) icon.style.display = "none";
+        if (check) check.style.display = "block";
+        if (textSpan) textSpan.textContent = "Copied!";
+        copyBtn.style.borderColor = "var(--color-terminal-text)";
+        copyBtn.style.color = "var(--color-terminal-text)";
+        setTimeout(() => {
+          if (icon) icon.style.display = "block";
+          if (check) check.style.display = "none";
+          if (textSpan) textSpan.textContent = "Copy";
+          if (document.body.contains(copyBtn)) {
+            copyBtn.style.borderColor = "";
+            copyBtn.style.color = "";
           }
+        }, 2000);
+      };
 
-          // Show copied state
-          const icon = copyBtn.querySelector(".copy-icon") as HTMLElement;
-          const check = copyBtn.querySelector(".check-icon") as HTMLElement;
-          const textSpan = copyBtn.querySelector(".copy-text") as HTMLElement;
+      const doCopy = async () => {
+        const codeEl = pre.querySelector("code");
+        const text = codeEl?.textContent || pre.textContent || "";
+        try {
+          await navigator.clipboard.writeText(text);
+          showCopied();
+          return;
+        } catch {
+          // clipboard API unavailable (insecure context) - use fallback
+        }
+        try {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          showCopied();
+        } catch {
+          // last resort: select the code text for manual copy
+          const range = document.createRange();
+          range.selectNodeContents(pre.querySelector("code") || pre);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+      };
 
-          if (icon) icon.style.display = "none";
-          if (check) check.style.display = "block";
-          if (textSpan) textSpan.textContent = "Copied!";
-
-          copyBtn.style.borderColor = "var(--color-terminal-text)";
-          copyBtn.style.color = "var(--color-terminal-text)";
-
-          setTimeout(() => {
-            if (icon) icon.style.display = "block";
-            if (check) check.style.display = "none";
-            if (textSpan) textSpan.textContent = "Copy";
-            // Only restore if still in DOM
-            if (document.body.contains(copyBtn)) {
-              copyBtn.style.borderColor = "";
-              copyBtn.style.color = "";
-            }
-          }, 2000);
-        });
-
-        header.appendChild(copyBtn);
-        wrapper.appendChild(header);
-
-        // Style the pre element
-        pre.style.margin = "0";
-        pre.style.border = "none";
-        pre.style.borderRadius = "0";
-        pre.style.background = "var(--color-terminal-bg)";
-        pre.style.padding = "1rem 1.25rem";
-        pre.style.overflowX = "auto";
-        pre.style.position = "relative";
-        pre.style.fontSize = "13px";
-        pre.style.lineHeight = "1.65";
-
-        // Move pre inside wrapper
-        pre.parentNode?.insertBefore(wrapper, pre);
-        wrapper.appendChild(pre);
-
-        addedWrappers.push(wrapper);
+      copyBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        doCopy();
       });
 
-      cleanupRef.current = () => {
-        addedWrappers.forEach((wrapper) => {
-          const pre = wrapper.querySelector("pre");
-          if (pre) {
-            pre.style.margin = "";
-            pre.style.border = "";
-            pre.style.borderRadius = "";
-            pre.style.background = "";
-            pre.style.padding = "";
-            pre.style.overflowX = "";
-            pre.style.position = "";
-            pre.style.fontSize = "";
-            pre.style.lineHeight = "";
-            delete pre.dataset.codeBlock;
+      // Keyboard copy: when the code block is focused, Ctrl/Cmd+C copies
+      // the entire block (no manual selection needed).
+      pre.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C")) {
+          const sel = window.getSelection();
+          const hasSelection = sel && sel.toString().length > 0;
+          // If the user already selected specific text, let the browser copy
+          // that selection instead of the whole block.
+          if (hasSelection) return;
+          e.preventDefault();
+          doCopy();
+        }
+      });
 
-            // Move pre back before wrapper
-            if (wrapper.parentNode) {
-              wrapper.parentNode.insertBefore(pre, wrapper);
+      header.appendChild(copyBtn);
+      wrapper.appendChild(header);
+
+      pre.style.margin = "0";
+      pre.style.border = "none";
+      pre.style.borderRadius = "0";
+      pre.style.background = "var(--color-terminal-bg)";
+      pre.style.padding = "1rem 1.25rem";
+      pre.style.overflowX = "auto";
+      pre.style.position = "relative";
+      pre.style.fontSize = "13px";
+      pre.style.lineHeight = "1.65";
+      // make pre focusable so Ctrl+C works on it
+      pre.setAttribute("tabindex", "0");
+
+      pre.parentNode?.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+    };
+
+    const addedWrappers: HTMLDivElement[] = [];
+
+    const processAll = () => {
+      const article = document.querySelector(".article-content");
+      if (!article) return false;
+      const codeBlocks = article.querySelectorAll<HTMLPreElement>("pre");
+      if (codeBlocks.length === 0) return false;
+      codeBlocks.forEach((pre) => {
+        processBlock(pre);
+        const wrapper = pre.closest(".code-block-wrapper") as HTMLDivElement | null;
+        if (wrapper) addedWrappers.push(wrapper);
+      });
+      return true;
+    };
+
+    // Try immediately, then retry a few times (covers slow client hydration),
+    // finally watch the DOM for any code blocks added later.
+    const trySchedule = [0, 50, 200, 600];
+    let attempt = 0;
+
+    const attemptRun = () => {
+      if (cancelled) return;
+      if (processAll()) {
+        // success - stop scheduling, but observe for future additions
+        startObserver();
+        return;
+      }
+      attempt++;
+      if (attempt < trySchedule.length) {
+        setTimeout(attemptRun, trySchedule[attempt]);
+      } else {
+        // no code blocks found yet; observe DOM for late-injected content
+        startObserver();
+      }
+    };
+
+    const startObserver = () => {
+      if (observer || cancelled) return;
+      const article = document.querySelector(".article-content");
+      if (!article) return;
+      observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          m.addedNodes.forEach((node) => {
+            if (node.nodeType !== 1) return;
+            const el = node as HTMLElement;
+            if (el.tagName === "PRE") {
+              processBlock(el as HTMLPreElement);
+              const wrapper = el.closest(".code-block-wrapper") as HTMLDivElement | null;
+              if (wrapper && !addedWrappers.includes(wrapper)) {
+                addedWrappers.push(wrapper);
+              }
+            } else {
+              const pres = el.querySelectorAll?.("pre") || [];
+              pres.forEach((pre) => {
+                processBlock(pre as HTMLPreElement);
+                const wrapper = pre.closest(".code-block-wrapper") as HTMLDivElement | null;
+                if (wrapper && !addedWrappers.includes(wrapper)) {
+                  addedWrappers.push(wrapper);
+                }
+              });
             }
+          });
+        }
+      });
+      observer.observe(article, { childList: true, subtree: true });
+    };
+
+    setTimeout(attemptRun, trySchedule[0]);
+
+    cleanupRef.current = () => {
+      cancelled = true;
+      observer?.disconnect();
+      observer = null;
+      addedWrappers.forEach((wrapper) => {
+        const pre = wrapper.querySelector("pre");
+        if (pre) {
+          pre.style.margin = "";
+          pre.style.border = "";
+          pre.style.borderRadius = "";
+          pre.style.background = "";
+          pre.style.padding = "";
+          pre.style.overflowX = "";
+          pre.style.position = "";
+          pre.style.fontSize = "";
+          pre.style.lineHeight = "";
+          pre.removeAttribute("tabindex");
+          delete pre.dataset.codeBlock;
+          if (wrapper.parentNode) {
+            wrapper.parentNode.insertBefore(pre, wrapper);
           }
-          wrapper.remove();
-        });
-      };
-    }, 50);
+        }
+        wrapper.remove();
+      });
+    };
 
     return () => {
-      clearTimeout(timeoutId);
+      cancelled = true;
+      observer?.disconnect();
+      observer = null;
       if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;

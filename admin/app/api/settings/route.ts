@@ -46,6 +46,12 @@ export async function PUT(request: Request) {
         ? data.smtpPassword
         : current.smtpPassword;
 
+    // Build new AI API key – only update if a new value is provided (not masked)
+    const aiApiKey =
+      data.ai?.aiApiKey && data.ai.aiApiKey !== "********"
+        ? data.ai.aiApiKey
+        : current.ai.aiApiKey;
+
     updateSettings({
       siteName,
       siteDescription: validateString(data.siteDescription ?? current.siteDescription, 500) || current.siteDescription,
@@ -70,6 +76,14 @@ export async function PUT(request: Request) {
       smtpFromEmail: data.smtpFromEmail ?? current.smtpFromEmail,
       smtpFromName: data.smtpFromName ?? current.smtpFromName,
       smtpUseSSL: data.smtpUseSSL ?? current.smtpUseSSL,
+      ai: {
+        aiProvider: data.ai?.aiProvider ?? current.ai.aiProvider,
+        aiApiKey,
+        aiModel: data.ai?.aiModel ?? current.ai.aiModel,
+        aiBaseUrl: data.ai?.aiBaseUrl ?? current.ai.aiBaseUrl,
+        aiSystemPrompt: data.ai?.aiSystemPrompt ?? current.ai.aiSystemPrompt,
+        aiTemperature: data.ai?.aiTemperature ?? current.ai.aiTemperature,
+      },
     });
 
     // Propagate maintenance mode changes to the frontend

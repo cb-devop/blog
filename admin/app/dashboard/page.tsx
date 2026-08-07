@@ -1,12 +1,13 @@
 import { 
   FileText, Eye, Users, TrendingUp,
   Feather, BookOpen, Tag, Settings,
-  PenTool, Plus, ChevronRight, Shield
+  PenTool, Plus, ChevronRight, Shield, Sparkles
 } from "lucide-react";
 import { StatsCard } from "@/components/stats-card";
 import { PostsTable } from "@/components/posts-table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { NotificationsWidget } from "@/components/notifications-widget";
 
 export default function DashboardHome() {
   const stats = [
@@ -47,6 +48,13 @@ export default function DashboardHome() {
       description: "Write a new article",
       href: "/dashboard/posts/create",
       color: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300",
+    },
+    {
+      title: "AI Writer",
+      icon: Sparkles,
+      description: "Generate with AI",
+      href: "/dashboard/ai-writer",
+      color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300",
     },
     {
       title: "Manage Categories",
@@ -140,20 +148,25 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Recent Posts */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Posts
-          </h2>
-          <Button variant="ghost" size="sm" asChild>
-            <a href="/dashboard/posts" className="text-primary">
-              View All
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </a>
-          </Button>
+      {/* Recent Posts + Notifications */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recent Posts
+            </h2>
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/dashboard/posts" className="text-primary">
+                View All
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </a>
+            </Button>
+          </div>
+          <PostsTable limit={5} />
         </div>
-        <PostsTable limit={5} />
+        <div className="space-y-4">
+          <NotificationsWidget />
+        </div>
       </div>
     </div>
   );

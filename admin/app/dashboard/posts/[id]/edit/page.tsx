@@ -11,7 +11,8 @@ import { ImageUpload } from "@/components/image-upload";
 import { SeoForm } from "@/components/seo-form";
 import { TagInput } from "@/components/tag-input";
 import { RichEditor } from "@/components/rich-editor";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { AiArticleGenerator } from "@/components/ai-article-generator";
+import { ArrowLeft, Save, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CategoryOption {
@@ -24,6 +25,7 @@ export default function EditPostPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const [showAiWriter, setShowAiWriter] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -183,9 +185,31 @@ export default function EditPostPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Content <span className="text-destructive">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-foreground">
+                    Content <span className="text-destructive">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiWriter(!showAiWriter)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${showAiWriter ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {showAiWriter ? "Hide AI Writer" : "Write / Refine with AI"}
+                  </button>
+                </div>
+                {showAiWriter && (
+                  <div className="mb-4">
+                    <AiArticleGenerator
+                      initialContent={formData.content}
+                      onInsert={(html) => {
+                        setFormData((prev) => ({ ...prev, content: html }));
+                        toast({ title: "AI content inserted", description: "Edit freely in the editor below." });
+                        setShowAiWriter(false);
+                      }}
+                    />
+                  </div>
+                )}
                 <RichEditor
                   value={formData.content}
                   onChange={(html) => setFormData({ ...formData, content: html })}

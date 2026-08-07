@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { 
-  Bell, Search, Moon, Sun, Menu, LogOut, X, LayoutDashboard, FileText, Layers, Tags, 
+  Search, Moon, Sun, Menu, LogOut, X, LayoutDashboard, FileText, Layers, Tags, 
   UserCog, MessageSquare, Mail, Shield, Users, User, Settings, BookOpen
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { NotificationsBell } from '@/components/notifications-bell';
 
 interface User {
   name: string;
@@ -119,18 +120,9 @@ export function Header({ user }: { user: User }) {
             </button>
 
             {/* Notifications */}
-            <Link
-              href="/dashboard/comments"
-              className="hidden sm:flex p-2 rounded-lg hover:bg-muted transition-colors relative"
-              title={pendingComments > 0 ? `${pendingComments} pending comments` : "No pending comments"}
-            >
-              <Bell className="h-5 w-5" />
-              {pendingComments > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold font-mono ring-2 ring-background">
-                  {pendingComments > 9 ? "9+" : pendingComments}
-                </span>
-              )}
-            </Link>
+            <div className="hidden sm:block">
+              <NotificationsBell />
+            </div>
 
             {/* User Menu */}
             <div className="flex items-center gap-1.5 sm:gap-3 pl-1.5 sm:pl-2 border-l border-border">

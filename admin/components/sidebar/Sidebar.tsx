@@ -17,12 +17,14 @@ import {
   UserCog,
   BookOpen,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Posts", href: "/dashboard/posts", icon: FileText },
+  { label: "AI Writer", href: "/dashboard/ai-writer", icon: Sparkles },
   { label: "Categories", href: "/dashboard/categories", icon: Layers },
   { label: "Tags", href: "/dashboard/tags", icon: Tags },
   { label: "Users", href: "/dashboard/users", icon: UserCog },
@@ -38,14 +40,27 @@ const navItems = [
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const [pendingComments, setPendingComments] = useState<number | null>(null);
+  const [unreadMessages, setUnreadMessages] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPending = async () => {
       try {
-        const res = await fetch("/api/comments?status=pending&limit=1");
-        if (res.ok) {
-          const data = await res.json();
+        const [commentsRes, msgsRes] = await Promise.all([
+          fetch("/api/comments?status=pending&limit=1"),
+          fetch("/api/contact?limit=1"),
+        ]);
+        if (commentsRes.ok) {
+          const data = await commentsRes.json();
           setPendingComments(data.pagination?.total ?? null);
+        }
+        if (msgsRes.ok) {
+          const data = await msgsRes.json();
+          // messages is an array; count those with isRead === false
+          const list = data.messages || data || [];
+          const unread = Array.isArray(list)
+            ? list.filter((m: any) => !m.isRead).length
+            : data.pagination?.total ?? 0;
+          setUnreadMessages(unread);
         }
       } catch {}
     };
@@ -78,6 +93,7 @@ export function Sidebar({ className }: { className?: string }) {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           const isComments = item.href === "/dashboard/comments";
+          const isMessages = item.href === "/dashboard/contact-messages";
           return (
             <Link
               key={item.href}
@@ -103,6 +119,11 @@ export function Sidebar({ className }: { className?: string }) {
               {isComments && pendingComments !== null && pendingComments > 0 && (
                 <span className="flex-shrink-0 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-yellow-500/20 text-yellow-500 text-[10px] font-bold font-mono">
                   {pendingComments > 99 ? "99+" : pendingComments}
+                </span>
+              )}
+              {isMessages && unreadMessages !== null && unreadMessages > 0 && (
+                <span className="flex-shrink-0 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold font-mono animate-pulse">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
                 </span>
               )}
             </Link>

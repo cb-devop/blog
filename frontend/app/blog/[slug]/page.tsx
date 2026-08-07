@@ -126,8 +126,8 @@ export default async function SinglePostPage({
               </span>
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-bold font-mono leading-tight mb-4">
-              <span className="text-terminal-prompt">$</span> {post.title}
+            <h1 className="text-2xl md:text-4xl font-bold font-display leading-tight mb-4">
+              <span className="text-terminal-prompt font-mono">$</span> {post.title}
             </h1>
 
             <div className="border-l-2 border-terminal-text/30 pl-4 py-2 mb-6">

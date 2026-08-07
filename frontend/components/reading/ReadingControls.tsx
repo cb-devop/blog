@@ -24,10 +24,48 @@ export function ReadingControls({
   onFocusModeChange,
 }: ReadingControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [fontSize, setFontSize] = useState(16);
-  const [lineHeight, setLineHeight] = useState(1.8);
+  const [fontSize, setFontSize] = useState(19);
+  const [lineHeight, setLineHeight] = useState(1.85);
   const [focusMode, setFocusMode] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load saved reading preferences from localStorage
+  useEffect(() => {
+    try {
+      const savedSize = localStorage.getItem("rc-fontSize");
+      const savedLineHeight = localStorage.getItem("rc-lineHeight");
+      const savedFocus = localStorage.getItem("rc-focusMode");
+      if (savedSize) setFontSize(parseInt(savedSize, 10));
+      if (savedLineHeight) setLineHeight(parseFloat(savedLineHeight));
+      if (savedFocus === "true") setFocusMode(true);
+    } catch {
+      // localStorage unavailable (SSR / privacy mode) - ignore
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist preferences
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem("rc-fontSize", String(fontSize));
+    } catch {}
+  }, [fontSize, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem("rc-lineHeight", String(lineHeight));
+    } catch {}
+  }, [lineHeight, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem("rc-focusMode", String(focusMode));
+    } catch {}
+  }, [focusMode, hydrated]);
 
   // Apply font size and line height to article content
   useEffect(() => {
@@ -98,7 +136,7 @@ export function ReadingControls({
 
   const increaseFontSize = useCallback(() => {
     setFontSize((prev) => {
-      const newSize = Math.min(prev + 2, 24);
+      const newSize = Math.min(prev + 1, 26);
       onFontSizeChange?.(newSize);
       return newSize;
     });
@@ -106,7 +144,7 @@ export function ReadingControls({
 
   const decreaseFontSize = useCallback(() => {
     setFontSize((prev) => {
-      const newSize = Math.max(prev - 2, 12);
+      const newSize = Math.max(prev - 1, 14);
       onFontSizeChange?.(newSize);
       return newSize;
     });
@@ -114,7 +152,7 @@ export function ReadingControls({
 
   const increaseLineHeight = useCallback(() => {
     setLineHeight((prev) => {
-      const newHeight = Math.min(prev + 0.2, 2.4);
+      const newHeight = Math.min(+(prev + 0.1).toFixed(2), 2.4);
       onLineHeightChange?.(newHeight);
       return newHeight;
     });
@@ -122,15 +160,15 @@ export function ReadingControls({
 
   const decreaseLineHeight = useCallback(() => {
     setLineHeight((prev) => {
-      const newHeight = Math.max(prev - 0.2, 1.4);
+      const newHeight = Math.max(+(prev - 0.1).toFixed(2), 1.4);
       onLineHeightChange?.(newHeight);
       return newHeight;
     });
   }, [onLineHeightChange]);
 
   const resetSettings = useCallback(() => {
-    setFontSize(16);
-    setLineHeight(1.8);
+    setFontSize(19);
+    setLineHeight(1.85);
     setFocusMode(false);
   }, []);
 
@@ -177,7 +215,7 @@ export function ReadingControls({
                   <div
                     className="h-full rounded-full bg-primary transition-all"
                     style={{
-                      width: `${((fontSize - 12) / (24 - 12)) * 100}%`,
+                      width: `${((fontSize - 14) / (26 - 14)) * 100}%`,
                     }}
                   />
                 </div>

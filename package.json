@@ -4,11 +4,11 @@
   "description": "Top Blog - A multi-project blog platform",
   "scripts": {
     "dev": "concurrently \"npm run dev:admin\" \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:admin": "cd admin && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && python manage.py runserver",
-    "install:all": "cd admin && npm install && cd ../frontend && npm install",
-    "build": "concurrently \"cd admin && npm run build\" \"cd frontend && npm run build\""
+    "dev:admin": "npm run dev --prefix admin",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "backend\\venv\\Scripts\\python.exe backend\\manage.py runserver",
+    "install:all": "npm install --prefix admin && npm install --prefix frontend",
+    "build": "concurrently \"npm run build --prefix admin\" \"npm run build --prefix frontend\""
   },
   "keywords": [],
   "author": "",
