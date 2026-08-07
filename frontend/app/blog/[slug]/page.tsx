@@ -54,15 +54,18 @@ function ArticleContentWrapper({ content, readTime }: { content: string; readTim
 
 export default async function SinglePostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { slug } = await params;
+  const { preview } = await searchParams;
 
-  // Try fallback data first, then API
+  // Try fallback data first, then API (pass preview token so drafts can be viewed)
   let post = getPostBySlugSync(slug);
   if (!post) {
-    post = await fetchPostBySlug(slug);
+    post = await fetchPostBySlug(slug, preview);
   }
 
   if (!post) {
@@ -78,6 +81,18 @@ export default async function SinglePostPage({
   return (
     <article className="min-h-screen">
       <ReadingProgress />
+
+      {/* Draft preview banner */}
+      {preview && (
+        <div className="sticky top-0 z-50 border-b border-yellow-500/40 bg-yellow-500/10 backdrop-blur">
+          <div className="container mx-auto px-4 md:px-6 max-w-5xl py-2.5 flex items-center justify-center gap-2 text-xs md:text-sm font-mono text-yellow-600 dark:text-yellow-400">
+            <Terminal className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              <strong>Preview mode</strong> — ye post abhi published nahi hai. Sirf preview link wale ko dikhta hai.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Header section */}
       <div className="container mx-auto px-4 md:px-6 max-w-5xl pt-8 md:pt-12">

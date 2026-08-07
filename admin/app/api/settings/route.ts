@@ -18,8 +18,10 @@ async function propagateMaintenanceMode(enable: boolean) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const auth = requireAuth(request);
+    if (!auth) return apiError("Unauthorized", 401);
     return NextResponse.json(getSafeSettings());
   } catch (error) {
     console.error("Error fetching settings:", error);

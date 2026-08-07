@@ -1,4 +1,5 @@
 import { setSmtpConfig } from "./email";
+import { loadJsonFile, saveJsonFile } from "./persistent-store";
 
 // In-memory settings store (shared across routes)
 export interface AiSettings {
@@ -15,6 +16,8 @@ export interface AiSettings {
   aiSystemPrompt: string;
   // Creativity 0.0 - 2.0
   aiTemperature: number;
+  // Read-only flag: the effective key comes from an env var, not settings.json
+  aiApiKeyFromEnv?: boolean;
 }
 
 export interface SiteSettings {
@@ -76,29 +79,59 @@ export const defaultSettings: SiteSettings = {
   },
 };
 
-let siteSettings: SiteSettings = { ...defaultSettings };
+// Load persisted settings from disk so changes survive server restarts.
+let siteSettings: SiteSettings = loadJsonFile("settings.json", defaultSettings);
 
 export function getSettings(): SiteSettings {
   return { ...siteSettings, ai: { ...siteSettings.ai } };
 }
 
+/**
+ * AI API key from the environment (trimmed, never persists to disk).
+ * Supported vars:
+ *   - AI_API_KEY (generic, any provider)
+ *   - GEMINI_API_KEY (default Gemini provider)
+ */
+export function getEnvAiApiKey(): string {
+  return (process.env.AI_API_KEY || process.env.GEMINI_API_KEY || "").trim();
+}
+
+/**
+ * Resolve the effective AI API key: an environment variable takes priority
+ * over the key stored in settings.json.
+ */
+export function getEffectiveAiApiKey(): string {
+  return getEnvAiApiKey() || siteSettings.ai.aiApiKey || "";
+}
+
+/** Whether the effective AI key comes from the environment (vs settings.json). */
+export function isAiKeyFromEnv(): boolean {
+  return !!getEnvAiApiKey();
+}
+
 export function getSafeSettings(): SiteSettings {
+  const effectiveAiKey = getEffectiveAiApiKey();
   return {
     ...siteSettings,
     smtpPassword: siteSettings.smtpPassword ? "********" : "",
     ai: {
       ...siteSettings.ai,
-      aiApiKey: siteSettings.ai.aiApiKey ? "********" : "",
+      aiApiKey: effectiveAiKey ? "********" : "",
+      aiApiKeyFromEnv: isAiKeyFromEnv(),
     },
   };
 }
 
 export function updateSettings(data: Partial<SiteSettings>): SiteSettings {
+  // aiApiKeyFromEnv is a read-only flag surfaced by getSafeSettings() — never persist it.
+  const ai = data.ai ? { ...data.ai } : undefined;
+  if (ai) delete ai.aiApiKeyFromEnv;
   siteSettings = {
     ...siteSettings,
     ...data,
-    ai: { ...siteSettings.ai, ...(data.ai || {}) },
+    ai: { ...siteSettings.ai, ...(ai || {}) },
   };
+  saveJsonFile("settings.json", siteSettings);
   syncSmtpConfig();
   return getSettings();
 }
@@ -108,11 +141,11 @@ export function isSmtpConfigured(): boolean {
 }
 
 export function isAiConfigured(): boolean {
-  return !!(siteSettings.ai.aiApiKey && siteSettings.ai.aiModel);
+  return !!(getEffectiveAiApiKey() && siteSettings.ai.aiModel);
 }
 
 export function getAiSettings(): AiSettings {
-  return { ...siteSettings.ai };
+  return { ...siteSettings.ai, aiApiKey: getEffectiveAiApiKey() };
 }
 
 function syncSmtpConfig() {

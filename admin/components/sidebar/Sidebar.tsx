@@ -133,19 +133,10 @@ export function Sidebar({ className }: { className?: string }) {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-4 text-primary-foreground">
-          <p className="text-sm font-semibold">Upgrade to Pro</p>
-          <p className="mt-1 text-xs text-primary-foreground/80">
-            Unlock advanced analytics & automation.
-          </p>
-          <button className="mt-3 w-full rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur transition-colors hover:bg-white/25">
-            Learn more
-          </button>
-        </div>
         <a
           href="/auth/login"
           onClick={(e) => { e.preventDefault(); document.cookie = "admin_token=; path=/; max-age=0"; window.location.href = "/auth/login"; }}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <LogOut className="h-4 w-4" />
           Sign out

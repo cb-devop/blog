@@ -1,3 +1,5 @@
+import { loadJsonFile, saveJsonFile } from "./persistent-store";
+
 export interface SecuritySettings {
   // Login rate limiting
   loginMaxAttempts: number;
@@ -52,7 +54,8 @@ export const defaultSecuritySettings: SecuritySettings = {
   enableCSP: false,
 };
 
-let securitySettings: SecuritySettings = { ...defaultSecuritySettings };
+// Load persisted settings from disk so changes survive server restarts.
+let securitySettings: SecuritySettings = loadJsonFile("security-settings.json", defaultSecuritySettings);
 
 export function getSecuritySettings(): SecuritySettings {
   return { ...securitySettings };
@@ -67,20 +70,20 @@ export function updateSecuritySettings(data: Partial<SecuritySettings>): Securit
     signupWindowMinutes: clamp(data.signupWindowMinutes, 1, 1440) ?? securitySettings.signupWindowMinutes,
     passwordMinLength: clamp(data.passwordMinLength, 4, 64) ?? securitySettings.passwordMinLength,
     passwordMaxLength: clamp(data.passwordMaxLength, 8, 256) ?? securitySettings.passwordMaxLength,
-    passwordRequireUppercase: Boolean(data.passwordRequireUppercase),
-    passwordRequireLowercase: Boolean(data.passwordRequireLowercase),
-    passwordRequireNumbers: Boolean(data.passwordRequireNumbers),
-    passwordRequireSpecialChars: Boolean(data.passwordRequireSpecialChars),
+    passwordRequireUppercase: data.passwordRequireUppercase ?? securitySettings.passwordRequireUppercase,
+    passwordRequireLowercase: data.passwordRequireLowercase ?? securitySettings.passwordRequireLowercase,
+    passwordRequireNumbers: data.passwordRequireNumbers ?? securitySettings.passwordRequireNumbers,
+    passwordRequireSpecialChars: data.passwordRequireSpecialChars ?? securitySettings.passwordRequireSpecialChars,
     sessionTimeoutHours: clamp(data.sessionTimeoutHours, 1, 720) ?? securitySettings.sessionTimeoutHours,
     maxConcurrentSessions: clamp(data.maxConcurrentSessions, 1, 100) ?? securitySettings.maxConcurrentSessions,
-    auditLogEnabled: Boolean(data.auditLogEnabled),
+    auditLogEnabled: data.auditLogEnabled ?? securitySettings.auditLogEnabled,
     auditLogMaxEntries: clamp(data.auditLogMaxEntries, 100, 10000) ?? securitySettings.auditLogMaxEntries,
-    allowRegistration: Boolean(data.allowRegistration),
-    enableTwoFactorAuth: Boolean(data.enableTwoFactorAuth),
-    enableHSTS: Boolean(data.enableHSTS),
-    enableXFrameOptions: Boolean(data.enableXFrameOptions),
-    enableXSSProtection: Boolean(data.enableXSSProtection),
-    enableCSP: Boolean(data.enableCSP),
+    allowRegistration: data.allowRegistration ?? securitySettings.allowRegistration,
+    enableTwoFactorAuth: data.enableTwoFactorAuth ?? securitySettings.enableTwoFactorAuth,
+    enableHSTS: data.enableHSTS ?? securitySettings.enableHSTS,
+    enableXFrameOptions: data.enableXFrameOptions ?? securitySettings.enableXFrameOptions,
+    enableXSSProtection: data.enableXSSProtection ?? securitySettings.enableXSSProtection,
+    enableCSP: data.enableCSP ?? securitySettings.enableCSP,
   };
 
   // Ensure passwordMaxLength >= passwordMinLength
@@ -88,6 +91,7 @@ export function updateSecuritySettings(data: Partial<SecuritySettings>): Securit
     securitySettings.passwordMaxLength = securitySettings.passwordMinLength + 4;
   }
 
+  saveJsonFile("security-settings.json", securitySettings);
   return { ...securitySettings };
 }
 

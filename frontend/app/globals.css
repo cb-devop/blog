@@ -111,6 +111,18 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(99, 102, 241, 0.05);
   }
 
+  /* Terminal Window - thin accent line at the top (scoped, used on contact page) */
+  .terminal-window-accent::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-ring), transparent);
+    opacity: 0.45;
+    pointer-events: none;
+  }
   /* Terminal Title Bar */
   .terminal-titlebar {
     display: flex;

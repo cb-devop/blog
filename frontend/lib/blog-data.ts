@@ -256,14 +256,19 @@ export async function fetchAllPosts(): Promise<BlogPost[]> {
   return fallbackPosts;
 }
 
-export async function fetchPostBySlug(slug: string): Promise<BlogPost | undefined> {
+export async function fetchPostBySlug(
+  slug: string,
+  preview?: string
+): Promise<BlogPost | undefined> {
   // Check fallback posts first
   const fallback = fallbackPosts.find((p) => p.slug === slug);
   if (fallback) return fallback;
 
   // Try admin API
   try {
-    const response = await fetch(`${ADMIN_API_URL}/api/posts/public?slug=${encodeURIComponent(slug)}`, {
+    const params = new URLSearchParams({ slug });
+    if (preview) params.set("preview", preview);
+    const response = await fetch(`${ADMIN_API_URL}/api/posts/public?${params.toString()}`, {
       signal: AbortSignal.timeout(5000),
     });
 
