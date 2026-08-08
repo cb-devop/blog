@@ -46,7 +46,7 @@ export const defaultSecuritySettings: SecuritySettings = {
   maxConcurrentSessions: 5,
   auditLogEnabled: true,
   auditLogMaxEntries: 1000,
-  allowRegistration: true,
+  allowRegistration: false,
   enableTwoFactorAuth: false,
   enableHSTS: true,
   enableXFrameOptions: true,

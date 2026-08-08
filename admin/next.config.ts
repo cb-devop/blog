@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/auth/login",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

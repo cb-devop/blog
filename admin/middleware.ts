@@ -2,17 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { getSecuritySettings } from "@/lib/security-settings";
 
-const JWT_SECRET_ENV = process.env.JWT_SECRET || "dev-jwt-secret-change-in-production";
-
-// Warn about default JWT secret in production
-if (JWT_SECRET_ENV === "dev-jwt-secret-change-in-production" && process.env.NODE_ENV === "production") {
-  console.warn(
-    "\x1b[33m⚠️  WARNING: Using default JWT_SECRET in production!\x1b[0m\n" +
-    "\x1b[33m   Set a strong JWT_SECRET environment variable immediately.\x1b[0m"
-  );
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Server cannot start without a secure secret.");
 }
-
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_ENV);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 async function verifyToken(token: string) {
   try {

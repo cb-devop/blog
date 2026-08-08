@@ -1,3 +1,4 @@
+import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from blog.models import Category, Tag, Post
@@ -10,14 +11,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Seeding database...")
 
-        # Create superuser if not exists
-        if not User.objects.filter(username="admin").exists():
+        admin_password = os.environ.get("DJANGO_SEED_ADMIN_PASSWORD")
+        if not admin_password:
+            self.stdout.write(self.style.WARNING("  [SKIP] DJANGO_SEED_ADMIN_PASSWORD not set, skipping superuser creation"))
+        elif not User.objects.filter(username="admin").exists():
             User.objects.create_superuser(
                 username="admin",
                 email="admin@example.com",
-                password="admin123",
+                password=admin_password,
             )
-            self.stdout.write(self.style.SUCCESS("  [OK] Superuser created (admin/admin123)"))
+            self.stdout.write(self.style.SUCCESS("  [OK] Superuser created (admin)"))
 
         # Create categories
         categories_data = [
@@ -107,7 +110,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"  [OK] Post created: {post.title}")
 
         self.stdout.write(self.style.SUCCESS("\n[DONE] Database seeded successfully!"))
-        self.stdout.write(f"   Admin login: admin / admin123")
+        if admin_password:
+            self.stdout.write(f"   Admin login: admin (password from DJANGO_SEED_ADMIN_PASSWORD)")
         self.stdout.write(f"   Posts: {Post.objects.count()}")
         self.stdout.write(f"   Categories: {Category.objects.count()}")
         self.stdout.write(f"   Tags: {Tag.objects.count()}")

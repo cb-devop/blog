@@ -8,9 +8,14 @@ const adapter = new PrismaBetterSqlite3({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const email = "admin@premiumblog.com";
-  const password = "Admin@123";
-  const name = "Admin User";
+  const email = process.env.ADMIN_SEED_EMAIL || "admin@premiumblog.com";
+  const password = process.env.ADMIN_SEED_PASSWORD;
+  const name = process.env.ADMIN_SEED_NAME || "Admin User";
+
+  if (!password) {
+    console.error("❌ ADMIN_SEED_PASSWORD environment variable is required");
+    process.exit(1);
+  }
 
   // Check if admin already exists
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -35,7 +40,6 @@ async function main() {
 
   console.log("✅ Admin user created successfully!");
   console.log("   Email:    " + user.email);
-  console.log("   Password: " + password);
   console.log("   Role:     " + user.role);
 }
 
