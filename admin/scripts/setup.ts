@@ -116,7 +116,12 @@ async function main() {
   `);
 
   // Hash password and create admin user
-  const hashedPassword = await bcrypt.hash("Admin@123", 12);
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+  if (!adminPassword) {
+    console.error("❌ ADMIN_SEED_PASSWORD environment variable is required");
+    process.exit(1);
+  }
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
   const id = "admin_" + Date.now();
 
   db.prepare(
@@ -125,7 +130,7 @@ async function main() {
   ).run(id, "admin@premiumblog.com", "Admin User", hashedPassword);
 
   console.log(`✅ Database created successfully at: ${DB_PATH}`);
-  console.log(`✅ Admin user created: admin@premiumblog.com / Admin@123`);
+  console.log(`✅ Admin user created: admin@premiumblog.com`);
 
   db.close();
 }

@@ -87,8 +87,8 @@ bash deploy/deploy.sh
 ```
 
 This installs dependencies, syncs the Prisma/SQLite schema, seeds the admin
-user (`admin@premiumblog.com` / `Admin@123`), builds both Next.js apps, sets
-up the Django venv, and starts everything under PM2.
+user (`admin@premiumblog.com` — set ADMIN_SEED_PASSWORD env var before running),
+builds both Next.js apps, sets up the Django venv, and starts everything under PM2.
 
 ## 6. Nginx + HTTPS
 

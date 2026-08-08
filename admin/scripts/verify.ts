@@ -17,10 +17,14 @@ if (user) {
   console.log(`   Email: ${user.email}`);
   console.log(`   Name:  ${user.name}`);
   console.log(`   Role:  ${user.role}`);
-  
-  // Verify password hash
-  const valid = bcrypt.compareSync("Admin@123", user.password);
-  console.log(`   Password valid: ${valid ? "✅ YES" : "❌ NO"}`);
+
+  const testPassword = process.env.VERIFY_PASSWORD;
+  if (testPassword) {
+    const valid = bcrypt.compareSync(testPassword, user.password);
+    console.log(`   Password valid: ${valid ? "✅ YES" : "❌ NO"}`);
+  } else {
+    console.log("   Password: Set VERIFY_PASSWORD env var to verify");
+  }
 } else {
   console.log("❌ No user found in database");
 }

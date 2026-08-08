@@ -1,26 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, LogIn, UserPlus, Loader2, Terminal, ChevronRight, Key, Mail, User, Shield, BookOpen, BarChart3 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2, Terminal, ChevronRight, Key, Mail, Shield, BookOpen, BarChart3 } from "lucide-react";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [bootPhase, setBootPhase] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [formVisible, setFormVisible] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
 
-  const fullTypedText = mode === "login"
-    ? "Authenticate to initialize admin shell..."
-    : "Initialize new admin profile...";
+  const fullTypedText = "Authenticate to initialize admin shell...";
 
   // Boot animation sequence
   useEffect(() => {
@@ -37,7 +31,6 @@ export default function LoginPage() {
       setBootPhase(currentPhase);
       if (currentPhase >= bootMessages.length) {
         clearInterval(phaseInterval);
-        // Start typing effect
         let charIndex = 0;
         const typeInterval = setInterval(() => {
           charIndex++;
@@ -56,34 +49,14 @@ export default function LoginPage() {
     return () => {
       phaseIntervals.forEach(clearInterval);
     };
-  }, [mode, fullTypedText]);
+  }, []);
 
-  // Focus first input when form appears
+  // Focus email input when form appears
   useEffect(() => {
-    if (formVisible) {
-      if (mode === "signup" && nameRef.current) {
-        nameRef.current.focus();
-      } else if (emailRef.current) {
-        emailRef.current.focus();
-      }
+    if (formVisible && emailRef.current) {
+      emailRef.current.focus();
     }
-  }, [formVisible, mode]);
-
-  const resetForm = () => {
-    setName("");
-    setEmail("");
-    setPassword("");
-    setError("");
-    setSuccess("");
-    setFormVisible(false);
-    setBootPhase(0);
-    setTypedText("");
-  };
-
-  const toggleMode = () => {
-    setMode(mode === "login" ? "signup" : "login");
-    resetForm();
-  };
+  }, [formVisible]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,37 +74,6 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       } else {
         setError("auth/access-denied: Invalid credentials");
-      }
-    } catch {
-      setError("auth/connection-failed: Network error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess("✓ Account provisioned successfully. Redirecting...");
-        setTimeout(() => {
-          document.cookie = `admin_token=${data.token}; path=/; max-age=86400`;
-          window.location.href = "/dashboard";
-        }, 1500);
-      } else {
-        setError(data.message || "auth/registration-failed");
       }
     } catch {
       setError("auth/connection-failed: Network error");
@@ -174,7 +116,7 @@ export default function LoginPage() {
               <Terminal className="h-3.5 w-3.5 text-terminal-prompt ml-2" />
               <span className="terminal-title">premium-admin</span>
               <span className="terminal-title-right text-terminal-text font-bold text-[8px] tracking-[0.15em]">
-                {mode === "login" ? "AUTH:LOGIN" : "AUTH:REGISTER"}
+                AUTH:LOGIN
               </span>
             </div>
 
@@ -220,7 +162,7 @@ export default function LoginPage() {
                     <div className="terminal-line text-xs">
                       <span className="text-terminal-text w-3 shrink-0">$</span>
                       <span className="text-terminal-prompt">
-                        {mode === "login" ? "auth/login.sh" : "auth/register.sh"}
+                        auth/login.sh
                       </span>
                       <span className="text-muted-foreground ml-1">--secure --tls=1.3</span>
                     </div>
@@ -236,43 +178,15 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* Login/Signup Form */}
+                {/* Login Form */}
                 {formVisible && (
                   <div className="animate-fade-in">
-                    <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-4">
-                      {/* Error / Success Messages */}
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      {/* Error Message */}
                       {error && (
                         <div className="terminal-line text-xs p-3 rounded-lg border border-destructive/30 bg-destructive/10">
                           <span className="text-red-500 shrink-0">!</span>
                           <span className="text-red-400 ml-2 font-mono">{error}</span>
-                        </div>
-                      )}
-                      {success && (
-                        <div className="terminal-line text-xs p-3 rounded-lg border border-terminal-text/30 bg-terminal-text/10">
-                          <span className="text-terminal-text shrink-0">✓</span>
-                          <span className="text-terminal-text ml-2 font-mono">{success}</span>
-                        </div>
-                      )}
-
-                      {/* Name field (signup only) */}
-                      {mode === "signup" && (
-                        <div className="space-y-1.5">
-                          <div className="terminal-line text-xs">
-                            <span className="text-terminal-prompt shrink-0">$</span>
-                            <span className="text-muted-foreground ml-2">Enter your display name:</span>
-                          </div>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <input
-                              ref={nameRef}
-                              type="text"
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              placeholder="admin"
-                              className="terminal-input pl-9 text-sm"
-                              required
-                            />
-                          </div>
                         </div>
                       )}
 
@@ -321,12 +235,6 @@ export default function LoginPage() {
                             {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         </div>
-                        {mode === "signup" && (
-                          <div className="terminal-line text-[10px] mt-1">
-                            <span className="text-muted-foreground shrink-0">#</span>
-                            <span className="text-muted-foreground ml-2">Password must be at least 8 characters</span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Submit button */}
@@ -340,50 +248,19 @@ export default function LoginPage() {
                             <span className="flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               <span className="terminal-cursor inline-block w-2 h-4 bg-terminal-text ml-1" />
-                              {mode === "login" ? "Authenticating..." : "Provisioning..."}
+                              Authenticating...
                             </span>
-                          ) : mode === "login" ? (
+                          ) : (
                             <span className="flex items-center gap-2">
                               <LogIn className="h-4 w-4 text-terminal-prompt" />
                               <span className="text-terminal-prompt">$</span>
                               ./authenticate.sh
                               <ChevronRight className="h-4 w-4" />
                             </span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <UserPlus className="h-4 w-4 text-terminal-prompt" />
-                              <span className="text-terminal-prompt">$</span>
-                              ./register.sh
-                              <ChevronRight className="h-4 w-4" />
-                            </span>
                           )}
                         </button>
                       </div>
                     </form>
-
-                    {/* Toggle Mode */}
-                    <div className="mt-6 text-center border-t border-border pt-5">
-                      <div className="terminal-line text-xs justify-center">
-                        <span className="text-muted-foreground shrink-0">#</span>
-                        <span className="text-muted-foreground ml-2">
-                          {mode === "login"
-                            ? "First time here? Initialize a new profile:"
-                            : "Already have credentials? Authenticate:"}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={toggleMode}
-                        className="terminal-btn mt-3 text-xs gap-2"
-                      >
-                        <Terminal className="h-3.5 w-3.5 text-terminal-prompt" />
-                        {mode === "login" ? (
-                          <><span className="text-terminal-prompt">$</span> ./register.sh --new-admin</>
-                        ) : (
-                          <><span className="text-terminal-prompt">$</span> ./login.sh --existing-user</>
-                        )}
-                      </button>
-                    </div>
 
                     {/* Feature List */}
                     <div className="mt-6 p-4 rounded-lg border border-border/50 bg-muted/20">

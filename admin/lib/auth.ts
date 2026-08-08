@@ -1,8 +1,10 @@
 import { jwtVerify, SignJWT } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "dev-jwt-secret-change-in-production"
-);
+const secret = process.env.JWT_SECRET;
+if (!secret) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set.");
+}
+const JWT_SECRET = new TextEncoder().encode(secret);
 
 export async function verifyAuth(token: string | undefined | null) {
   if (!token) return null;

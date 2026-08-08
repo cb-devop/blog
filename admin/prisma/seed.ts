@@ -10,24 +10,27 @@ async function main() {
   console.log("🌱 Seeding database...\n");
 
   // ── Users ──
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD || "Admin@123";
+  const editorPassword = process.env.EDITOR_SEED_PASSWORD || "Editor@123";
+
   let adminUser = await prisma.user.findUnique({ where: { email: "admin@premiumblog.com" } });
   if (!adminUser) {
-    const hashedPassword = await bcrypt.hash("Admin@123", 12);
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
     adminUser = await prisma.user.create({
       data: { name: "Admin User", email: "admin@premiumblog.com", password: hashedPassword, role: "ADMIN" },
     });
-    console.log("✅ Created admin user: admin@premiumblog.com / Admin@123");
+    console.log("✅ Created admin user: admin@premiumblog.com");
   } else {
     console.log("✅ Admin user already exists");
   }
 
   let editorUser = await prisma.user.findUnique({ where: { email: "editor@premiumblog.com" } });
   if (!editorUser) {
-    const hashedPassword = await bcrypt.hash("Editor@123", 12);
+    const hashedPassword = await bcrypt.hash(editorPassword, 12);
     editorUser = await prisma.user.create({
       data: { name: "Editor User", email: "editor@premiumblog.com", password: hashedPassword, role: "EDITOR" },
     });
-    console.log("✅ Created editor user: editor@premiumblog.com / Editor@123");
+    console.log("✅ Created editor user: editor@premiumblog.com");
   } else {
     console.log("✅ Editor user already exists");
   }
